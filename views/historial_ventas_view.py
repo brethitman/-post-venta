@@ -7,7 +7,8 @@ from controllers.venta_controller import VentaController
 class HistorialVentasView(QWidget):
     def __init__(self):
         super().__init__()
-        self.venta_ctrl = VentaController("database/RestauranteBuenSabor.db")
+        # 🛠️ CORRECCIÓN AQUÍ: Dejamos el constructor vacío para usar la ruta absoluta automatizada
+        self.venta_ctrl = VentaController()
         self.init_ui()
 
     def init_ui(self):
@@ -42,16 +43,36 @@ class HistorialVentasView(QWidget):
         self.arbol_ventas.setHeaderLabels(["Código / Fecha / Plato", "Hora / P. Unit", "Monto Total Cobrado"])
         self.arbol_ventas.header().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         
+        # 🛠️ Forzamos color de texto negro en items, selección y hover
         self.arbol_ventas.setStyleSheet("""
             QTreeWidget {
                 background-color: #FFFFFF; border: 1px solid #E5E7EB;
-                border-radius: 12px; padding: 10px; font-size: 14px; color: #374151;
+                border-radius: 12px; padding: 10px; font-size: 14px; color: #000000;
             }
-            QTreeView::item { padding: 6px; border-bottom: 1px solid #F3F4F6; }
-            QTreeView::item:hover { background-color: #F9FAFB; }
+            QTreeView::item { 
+                padding: 6px; 
+                border-bottom: 1px solid #F3F4F6; 
+                color: #000000; 
+            }
+            QTreeView::item:hover { 
+                background-color: #F3F4F6; 
+                color: #000000; 
+            }
+            QTreeView::item:selected { 
+                background-color: #E5E7EB; 
+                color: #000000; 
+            }
+            QTreeView::item:selected:active {
+                background-color: #E5E7EB;
+                color: #000000;
+            }
+            QTreeView::item:selected:!active {
+                background-color: #E5E7EB;
+                color: #000000;
+            }
             QHeaderView::section {
                 background-color: #F9FAFB; padding: 8px; font-weight: bold;
-                font-size: 13px; border: none; color: #4B5563;
+                font-size: 13px; border: none; color: #000000;
             }
         """)
         layout_principal.addWidget(self.arbol_ventas)
@@ -59,7 +80,7 @@ class HistorialVentasView(QWidget):
         # 🧮 Barra de resumen inferior estática
         self.lbl_resumen_total = QLabel("Total Histórico Acumulado: $0.00")
         self.lbl_resumen_total.setStyleSheet("""
-            font-size: 16px; font-weight: bold; color: #111827; 
+            font-size: 16px; font-weight: bold; color: #000000; 
             background-color: #FFFFFF; border: 1px solid #E5E7EB; 
             padding: 12px; border-radius: 8px; margin-top: 5px;
         """)
@@ -68,7 +89,6 @@ class HistorialVentasView(QWidget):
         # Carga inicial de datos
         self.cargar_historial_agrupado()
 
-    # 🔄 NUEVO MÉTODO IMPORTANTE: Sobrescribimos el evento de mostrarse en pantalla
     def showEvent(self, event):
         """Cada vez que el QStackedWidget cambie a esta vista, los datos se recargarán desde la BD."""
         super().showEvent(event)
@@ -109,18 +129,16 @@ class HistorialVentasView(QWidget):
             
             # 2️⃣ NIVEL 2: Los Tickets de esa fecha (Hijos)
             for venta in lista_ventas_del_dia:
-                # 🛠️ CAMBIO AQUÍ: Calculamos el número correlativo que le correspondió ese día específico
                 ticket_diario = self.venta_ctrl.calcular_ticket_diario_para_historial(venta.id, venta.fecha_hora)
                 
                 nodo_venta = QTreeWidgetItem(nodo_fecha)
-                # Mostramos de forma amigable el número diario e internamente su ID único de BD
                 nodo_venta.setText(0, f"📄 Ticket N° {ticket_diario}  (BD #{venta.id})")
                 nodo_venta.setText(1, venta.fecha_hora.strftime('%H:%M:%S'))
                 nodo_venta.setText(2, f"${venta.total:.2f}")
                 
                 nodo_venta.setFont(0, QFont("Segoe UI", 10, QFont.Weight.Medium))
-                nodo_venta.setForeground(0, Qt.GlobalColor.darkBlue)
-                nodo_venta.setForeground(1, Qt.GlobalColor.darkGray)
+                for col in range(3):
+                    nodo_venta.setForeground(col, Qt.GlobalColor.black)
 
                 # 3️⃣ NIVEL 3: Los artículos de este Ticket específico (Nietos)
                 detalles_platos = self.venta_ctrl.obtener_detalles_de_venta(venta.id)
@@ -134,12 +152,9 @@ class HistorialVentasView(QWidget):
                     
                     fuente_plato = QFont("Segoe UI", 9)
                     fuente_plato.setItalic(True)
-                    nodo_detalle.setFont(0, fuente_plato)
-                    nodo_detalle.setFont(1, fuente_plato)
-                    nodo_detalle.setFont(2, fuente_plato)
                     
-                    nodo_detalle.setForeground(0, Qt.GlobalColor.gray)
-                    nodo_detalle.setForeground(1, Qt.GlobalColor.gray)
-                    nodo_detalle.setForeground(2, Qt.GlobalColor.gray)
+                    for col in range(3):
+                        nodo_detalle.setFont(col, fuente_plato)
+                        nodo_detalle.setForeground(col, Qt.GlobalColor.black)
 
         self.lbl_resumen_total.setText(f"💰 Total Histórico Acumulado en Base de Datos: ${total_historico:.2f}")

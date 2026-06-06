@@ -1,10 +1,23 @@
+import os
+import sys
 import sqlite3
 from datetime import datetime
 from models.venta import Venta
 
 class VentaController:
-    def __init__(self, db_path: str = "database/RestauranteBuenSabor.db"):
-        self.db_path = db_path
+    def __init__(self):
+        # 🛠️ CORRECCIÓN DE RUTA ABSOLUTA PARA COMPILACIÓN (.EXE)
+        # 1. Detectamos si el programa corre empaquetado (.exe) con PyInstaller o como script (.py)
+        if getattr(sys, 'frozen', False):
+            # Si es un .exe, la raíz es donde está el ejecutable instalado
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            # Si es modo desarrollo .py, obtenemos la raíz del proyecto subiendo un nivel desde 'controllers/'
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            base_dir = os.path.dirname(current_dir)
+
+        # 2. Unimos la raíz de forma limpia usando os.path.join para evitar conflictos de diagonales en Windows
+        self.db_path = os.path.join(base_dir, "database", "RestauranteBuenSabor.db")
 
     def _conectar(self):
         return sqlite3.connect(self.db_path)
@@ -106,11 +119,13 @@ class VentaController:
         cursor = conn.cursor()
         fecha_solo = fecha_hora_obj.strftime("%Y-%m-%d")
         try:
+            # 🌟 Ajuste de consulta estricta para garantizar que cuente correctamente las filas anteriores
             cursor.execute("""
                 SELECT COUNT(*) FROM Ventas 
                 WHERE FechaHora LIKE ? AND Id <= ?
             """, (f"{fecha_solo}%", venta_id))
-            return cursor.fetchone()[0]
+            resultado = cursor.fetchone()
+            return resultado[0] if resultado else 1
         except sqlite3.Error:
             return 1
         finally:

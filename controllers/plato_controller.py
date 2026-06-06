@@ -1,10 +1,23 @@
+import os
+import sys
 import sqlite3
 import uuid  # Generador de IDs únicos de texto automáticamente
 from models.plato import Plato
 
 class PlatoController:
-    def __init__(self, db_path: str = "database/RestauranteBuenSabor.db"):
-        self.db_path = db_path
+    def __init__(self):
+        # 🛠️ CORRECCIÓN DE RUTA ABSOLUTA PARA COMPILACIÓN (.EXE)
+        # 1. Detectamos si el programa corre congelado (.exe) con PyInstaller o como script (.py)
+        if getattr(sys, 'frozen', False):
+            # Si es un .exe, la raíz es donde está el ejecutable instalado
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            # Si es modo desarrollo .py, obtenemos la raíz del proyecto subiendo un nivel desde 'controllers/'
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            base_dir = os.path.dirname(current_dir)
+
+        # 2. Unimos la raíz usando os.path.join de forma limpia para evitar problemas de diagonales
+        self.db_path = os.path.join(base_dir, "database", "RestauranteBuenSabor.db")
 
     def _conectar(self):
         return sqlite3.connect(self.db_path)
@@ -16,7 +29,6 @@ class PlatoController:
         try:
             cursor.execute("SELECT Id, Nombre, Precio FROM Platos ORDER BY Nombre ASC")
             for fila in cursor.fetchall():
-                # 🛠️ CORREGIDO: Paréntesis cerrado correctamente al final de la instanciación
                 platos.append(Plato(id=str(fila[0]), nombre=fila[1], precio=fila[2]))
         except sqlite3.Error as e:
             print(f"Error al obtener platos: {e}")
@@ -28,9 +40,7 @@ class PlatoController:
         conn = self._conectar()
         cursor = conn.cursor()
         try:
-            # Generamos un ID de texto único de 6 caracteres (ej: 'A1B2C3')
             id_automatico = uuid.uuid4().hex[:6].upper()
-            
             cursor.execute("INSERT INTO Platos (Id, Nombre, Precio) VALUES (?, ?, ?)", 
                            (id_automatico, plato.nombre, plato.precio))
             conn.commit()

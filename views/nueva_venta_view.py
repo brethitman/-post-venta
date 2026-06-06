@@ -13,8 +13,9 @@ from models.detalle_venta import DetalleVenta
 class NuevaVentaView(QWidget):
     def __init__(self):
         super().__init__()
-        self.plato_ctrl = PlatoController("database/RestauranteBuenSabor.db")
-        self.venta_ctrl = VentaController("database/RestauranteBuenSabor.db")
+        # 🛠️ CORRECCIÓN AQUÍ: Dejamos los constructores vacíos para usar la ruta absoluta automatizada
+        self.plato_ctrl = PlatoController()
+        self.venta_ctrl = VentaController()
         
         # Carrito temporal en memoria
         self.carrito = {}
@@ -60,7 +61,7 @@ class NuevaVentaView(QWidget):
         
         card_resumen = QWidget()
         card_resumen.setStyleSheet("""
-            QWidget { background-color: #FFFFFF; border-radius: 16px; border: 1px solid #E5E7EB; }
+            QWidget { background-color: #FFFFFF; border-radius: 16px; border: 1px solid #E5E5E5; }
             QLabel { border: none; background: transparent; }
         """)
         layout_resumen = QVBoxLayout(card_resumen)
@@ -76,6 +77,10 @@ class NuevaVentaView(QWidget):
         self.tabla_carrito.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tabla_carrito.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         
+        # ❌ DESHABILITAR EDICIÓN EN LA TABLA
+        self.tabla_carrito.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.tabla_carrito.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows) # Solo seleccionar filas
+
         self.tabla_carrito.setStyleSheet("""
             QTableWidget { border: none; background-color: white; gridline-color: #F3F4F6; }
             QHeaderView::section { background-color: #F9FAFB; padding: 6px; font-weight: bold; border: none; }
@@ -145,17 +150,14 @@ class NuevaVentaView(QWidget):
             btn_plato.clicked.connect(lambda checked, p=plato: self.agregar_al_carrito(p))
             self.grid_platos.addWidget(btn_plato, fila, columna)
 
-    # 🆕 MÉTODO DE ACTUALIZACIÓN AUTOMÁTICA EN TIEMPO REAL
     def actualizar_menu(self):
         """Limpia los botones obsoletos de la cuadrícula y redibuja el menú actualizado de la base de datos."""
-        # Recorremos el layout de la cuadrícula de forma inversa para eliminar todos los botones previos de memoria
         while self.grid_platos.count():
             item = self.grid_platos.takeAt(0)
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
         
-        # Volvemos a consultar y generar la interfaz con los datos frescos
         self.dibujar_cuadricula_platos()
 
     def agregar_al_carrito(self, plato):
@@ -235,33 +237,49 @@ class NuevaVentaView(QWidget):
         else:
             QMessageBox.critical(self, "Error", "Ocurrió un problema en la BD al guardar la venta.")
 
-    def imprimir_ticket(self, venta: Venta, ticket_diario: int):
-        """Genera el contenido en texto incluyendo el ticket del día y despliega el diálogo nativo."""
-        texto_ticket = []
-        texto_ticket.append("=========================================")
-        texto_ticket.append("         RESTAURANTE BUEN SABOR          ")
-        texto_ticket.append("=========================================")
-        texto_ticket.append(f"            *** TICKET N° {ticket_diario} *** ")
-        texto_ticket.append("=========================================")
-        texto_ticket.append(f"Fecha: {venta.fecha_hora.strftime('%d/%m/%Y %H:%M:%S')}")
-        texto_ticket.append("-----------------------------------------")
-        texto_ticket.append(f"{'Cant. Plato':<22} {'P.Unit':<8} {'Subtotal':<8}")
-        texto_ticket.append("-----------------------------------------")
+    def generar_bloque_texto_ticket(self, tipo_copia: str, venta: Venta, ticket_diario: int) -> list:
+        """Helper para construir las líneas individuales de cada copia conservando tu formato original."""
+        lineas = []
+        lineas.append("=========================================")
+        lineas.append(f"            *** {tipo_copia} *** ")
+        lineas.append("=========================================")
+        lineas.append("         RESTAURANTE BUEN SABOR          ")
+        lineas.append("=========================================")
+        lineas.append(f"            *** TICKET N° {ticket_diario} *** ")
+        lineas.append("=========================================")
+        lineas.append(f"Fecha: {venta.fecha_hora.strftime('%d/%m/%Y %H:%M:%S')}")
+        lineas.append("-----------------------------------------")
+        lineas.append(f"{'Cant. Plato':<22} {'P.Unit':<8} {'Subtotal':<8}")
+        lineas.append("-----------------------------------------")
         
         for item in self.carrito.values():
             plato = item['plato']
             cant = item['cantidad']
             sub = plato.precio * cant
             nombre_corto = plato.nombre[:18] 
-            texto_ticket.append(f"{cant}x {nombre_corto:<19} ${plato.precio:<7.2f} ${sub:<7.2f}")
+            lineas.append(f"{cant}x {nombre_corto:<19} ${plato.precio:<7.2f} ${sub:<7.2f}")
             
-        texto_ticket.append("-----------------------------------------")
-        texto_ticket.append(f"TOTAL A PAGAR:                  ${venta.total:.2f}")
-        texto_ticket.append("=========================================")
-        texto_ticket.append("         ¡Gracias por su preferencia!     ")
-        texto_ticket.append("================================*********\n")
+        lineas.append("-----------------------------------------")
+        lineas.append(f"TOTAL A PAGAR:                  ${venta.total:.2f}")
+        lineas.append("=========================================")
+        lineas.append("         ¡Gracias por su preferencia!     ")
+        lineas.append("================================*********")
+        lineas.append("\n✂ - - - - - - - - - - - - - - - - - - - ✂\n")
+        return lineas
 
-        cuerpo_ticket = "\n".join(texto_ticket)
+    def imprimir_ticket(self, venta: Venta, ticket_diario: int):
+        """Genera el contenido en texto uniendo las 3 copias y despliega tu diálogo nativo original."""
+        texto_ticket_completo = []
+        
+        # Unimos los 3 bloques seguidos uno tras otro en la misma tira
+        texto_ticket_completo.extend(self.generar_bloque_texto_ticket("COPIA CAJA", venta, ticket_diario))
+        texto_ticket_completo.extend(self.generar_bloque_texto_ticket("COPIA COCINA", venta, ticket_diario))
+        texto_ticket_completo.extend(self.generar_bloque_texto_ticket("COPIA CLIENTE", venta, ticket_diario))
+        
+        # Añadimos unos saltos de línea finales para que el rollo avance y no se corte el último ticket
+        texto_ticket_completo.append("\n\n\n")
+
+        cuerpo_ticket = "\n".join(texto_ticket_completo)
 
         printer = QPrinter(QPrinter.PrinterMode.HighResolution)
         dialogo = QPrintDialog(printer, self)

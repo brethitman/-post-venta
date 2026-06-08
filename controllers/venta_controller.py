@@ -78,13 +78,21 @@ class VentaController:
             
             for fila in filas:
                 id_venta = fila[0]
-                fecha_hora_str = fila[1]
+                fecha_hora_str = str(fila[1]).strip()
                 total_venta = fila[2]
+                
+                # 🛠️ SOLUCIÓN: Limpieza dinámica de microsegundos (.0967216) si existen en la BD
+                if "." in fecha_hora_str:
+                    fecha_hora_str = fecha_hora_str.split(".")[0]
                 
                 try:
                     fecha_hora_obj = datetime.strptime(fecha_hora_str, "%Y-%m-%d %H:%M:%S")
                 except (ValueError, TypeError):
-                    fecha_hora_obj = datetime.now()
+                    try:
+                        # Respaldo por si algún registro se guardó sólo con formato de fecha corta
+                        fecha_hora_obj = datetime.strptime(fecha_hora_str, "%Y-%m-%d")
+                    except (ValueError, TypeError):
+                        fecha_hora_obj = datetime.now()
                 
                 venta = Venta(id=id_venta, fecha_hora=fecha_hora_obj, total=total_venta)
                 ventas.append(venta)
@@ -129,4 +137,4 @@ class VentaController:
         except sqlite3.Error:
             return 1
         finally:
-            conn.close()
+            conn.close() 

@@ -26,8 +26,8 @@ class ConsultaTicketView(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        # 🎨 Fondo General de la paleta: Gris ultra claro limpio (#F8FAFC)
-        self.setStyleSheet("background-color: #F8FAFC;")
+        # 🎨 Fondo General de la paleta: Gris ultra claro limpio (#F8FAFC) y texto base negro (#000000)
+        self.setStyleSheet("background-color: #F8FAFC; color: #000000;")
         
         layout_principal = QVBoxLayout(self)
         layout_principal.setContentsMargins(30, 25, 30, 25)
@@ -55,9 +55,9 @@ class ConsultaTicketView(QWidget):
         layout_header.addWidget(lbl_status, alignment=Qt.AlignmentFlag.AlignRight)
         layout_principal.addLayout(layout_header)
 
-        # Título de la Sección Principal
+        # Título de la Sección Principal - Forzado a Negro
         lbl_titulo = QLabel("Buscador de Tickets Diarios")
-        lbl_titulo.setStyleSheet("font-size: 24px; font-weight: 800; color: #0F172A; background: transparent; padding-bottom: 5px;")
+        lbl_titulo.setStyleSheet("font-size: 24px; font-weight: 800; color: #000000; background: transparent; padding-bottom: 5px;")
         layout_principal.addWidget(lbl_titulo)
 
         # ─── 🔄 SECCIÓN CENTRAL DIVIDIDA EN DOS COLUMNAS ───
@@ -68,18 +68,19 @@ class ConsultaTicketView(QWidget):
         # PANEL IZQUIERDO: FORMULARIO DE FILTROS
         # ==========================================
         panel_izquierdo = QWidget()
-        panel_izquierdo.setStyleSheet("background-color: #FFFFFF; border-radius: 12px; border: 1px solid #E5E7EB;")
+        panel_izquierdo.setStyleSheet("background-color: #FFFFFF; border-radius: 12px; border: 1px solid #E5E7EB; color: #000000;")
         
         layout_izq_interno = QVBoxLayout(panel_izquierdo)
         layout_izq_interno.setContentsMargins(25, 25, 25, 25)
         layout_izq_interno.setSpacing(18)
 
         lbl_panel_f = QLabel("🔍 Parámetros de Búsqueda")
-        lbl_panel_f.setStyleSheet("font-size: 16px; font-weight: bold; color: #1F2937; border-bottom: 1px solid #E5E7EB; padding-bottom: 10px;")
+        lbl_panel_f.setStyleSheet("font-size: 16px; font-weight: bold; color: #000000; border-bottom: 1px solid #E5E7EB; padding-bottom: 10px;")
         layout_izq_interno.addWidget(lbl_panel_f)
 
-        estilo_labels = "font-size: 13px; font-weight: 700; color: #475569; border: none; background: transparent;"
-        estilo_inputs = "background-color: #FFFFFF; padding: 10px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #0F172A;"
+        # Estilos forzados a Negro Puro (#000000) para inputs y textos de los campos
+        estilo_labels = "font-size: 13px; font-weight: 700; color: #000000; border: none; background: transparent;"
+        estilo_inputs = "background-color: #FFFFFF; padding: 10px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #000000;"
 
         # Selector de Fecha
         layout_izq_interno.addWidget(QLabel("<b>Seleccione la Fecha:</b>", styleSheet=estilo_labels))
@@ -113,7 +114,7 @@ class ConsultaTicketView(QWidget):
                 background-color: #2563EB; color: white; font-weight: 700; 
                 font-size: 14px; border-radius: 8px; border: none;
             }
-            QPushButton:hover { background-color: #1D4ED8; }
+            QPushButton:hover { background-color: #1D4ED8; color: white; }
         """)
         self.btn_buscar.clicked.connect(self.ejecutar_busqueda)
         layout_izq_interno.addWidget(self.btn_buscar)
@@ -127,15 +128,15 @@ class ConsultaTicketView(QWidget):
         # PANEL DERECHO: VISTA DEL TICKET DIGITAL
         # ==========================================
         self.card_resultado = QWidget()
-        self.card_resultado.setStyleSheet("background-color: #FFFFFF; border-radius: 12px; border: 1px solid #E5E7EB;")
+        self.card_resultado.setStyleSheet("background-color: #FFFFFF; border-radius: 12px; border: 1px solid #E5E7EB; color: #000000;")
         
         layout_card = QVBoxLayout(self.card_resultado)
         layout_card.setContentsMargins(25, 25, 25, 25)
         layout_card.setSpacing(15)
 
         # Cabecera interactiva del ticket
-        self.lbl_info_cabecera = QLabel("<br><br><p align='center' style='color: #94A3B8; font-size: 14px;'><i>Ingrese los parámetros a la izquierda<br>y presione buscar para visualizar el ticket aquí.</i></p>")
-        self.lbl_info_cabecera.setStyleSheet("font-size: 13px; color: #334155; line-height: 140%; background: transparent; border: none;")
+        self.lbl_info_cabecera = QLabel("<br><br><p align='center' style='color: #64748B; font-size: 14px;'><i>Ingrese los parámetros a la izquierda<br>y presione buscar para visualizar el ticket aquí.</i></p>")
+        self.lbl_info_cabecera.setStyleSheet("font-size: 13px; color: #000000; line-height: 140%; background: transparent; border: none;")
         layout_card.addWidget(self.lbl_info_cabecera)
 
         # Tabla de Detalles Premium
@@ -150,19 +151,20 @@ class ConsultaTicketView(QWidget):
         self.tabla_detalles.setSelectionMode(QTableWidget.SelectionMode.NoSelection)  
         self.tabla_detalles.setFocusPolicy(Qt.FocusPolicy.NoFocus)                    
 
+        # Aseguramos color negro (#000000) en el texto de las filas y en los títulos de las columnas
         self.tabla_detalles.setStyleSheet("""
             QTableWidget { 
-                border: none; background-color: white; color: #0F172A; font-size: 13px;
+                border: none; background-color: white; color: #000000; font-size: 13px;
             }
             QTableWidget::item {
-                padding: 8px; border-bottom: 1px solid #F1F5F9;
+                padding: 8px; border-bottom: 1px solid #F1F5F9; color: #000000;
             }
             QTableWidget::item:focus {
-                background-color: transparent;
+                background-color: transparent; color: #000000;
             }
             QHeaderView::section { 
                 background-color: #F8FAFC; padding: 8px; font-weight: 700; 
-                border: none; color: #64748B; font-size: 11px; text-transform: uppercase;
+                border: none; color: #000000; font-size: 11px; text-transform: uppercase;
             }
         """)
         layout_card.addWidget(self.tabla_detalles)
@@ -191,11 +193,12 @@ class ConsultaTicketView(QWidget):
         ticket_encontrado = self.consulta_ctrl.buscar_ticket_por_fecha_y_numero(fecha_texto, nro_ticket)
 
         if ticket_encontrado:
+            # Forzamos los textos inyectados por HTML a usar color: #000000 explícitamente
             self.lbl_info_cabecera.setText(
-                f"<span style='font-size: 17px; color: #0F172A;'><b>🧾 Ticket del Día N° {nro_ticket}</b></span><br>"
+                f"<span style='font-size: 17px; color: #000000;'><b>🧾 Ticket del Día N° {nro_ticket}</b></span><br>"
                 f"<hr style='border: 1px dashed #E2E8F0;'><br>"
-                f"📅 <b>Fecha/Hora de Venta:</b> {ticket_encontrado['fecha_hora']}<br>"
-                f"🆔 <b>Código único de Auditoría (BD):</b> <span style='color: #2563EB; font-weight: bold;'>#{ticket_encontrado['id_bd']}</span>"
+                f"<span style='color: #000000;'>📅 <b>Fecha/Hora de Venta:</b> {ticket_encontrado['fecha_hora']}</span><br>"
+                f"<span style='color: #000000;'>🆔 <b>Código único de Auditoría (BD):</b></span> <span style='color: #2563EB; font-weight: bold;'>#{ticket_encontrado['id_bd']}</span>"
             )
             
             self.tabla_detalles.setRowCount(0)
@@ -206,15 +209,25 @@ class ConsultaTicketView(QWidget):
                 
                 item_cant = QTableWidgetItem(str(cant))
                 item_cant.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                item_cant.setForeground(Qt.GlobalColor.black) # Forzado a negro
+                
+                item_nombre = QTableWidgetItem(nombre_plato)
+                item_nombre.setForeground(Qt.GlobalColor.black) # Forzado a negro
+                
+                item_precio = QTableWidgetItem(f"${precio_unit:.2f}")
+                item_precio.setForeground(Qt.GlobalColor.black) # Forzado a negro
+                
+                item_subtotal = QTableWidgetItem(f"${subtotal:.2f}")
+                item_subtotal.setForeground(Qt.GlobalColor.black) # Forzado a negro
                 
                 self.tabla_detalles.setItem(fila, 0, item_cant)
-                self.tabla_detalles.setItem(fila, 1, QTableWidgetItem(nombre_plato))
-                self.tabla_detalles.setItem(fila, 2, QTableWidgetItem(f"${precio_unit:.2f}"))
-                self.tabla_detalles.setItem(fila, 3, QTableWidgetItem(f"${subtotal:.2f}"))
+                self.tabla_detalles.setItem(fila, 1, item_nombre)
+                self.tabla_detalles.setItem(fila, 2, item_precio)
+                self.tabla_detalles.setItem(fila, 3, item_subtotal)
 
             self.lbl_monto_total.setText(f"TOTAL COBRADO: ${ticket_encontrado['total']:.2f}")
         else:
-            # Si no hay resultados, limpiamos la zona de impresión digital y mostramos el aviso
+            # Si no hay resultados, limpiamos la zona de impresión digital y mostramos el aviso en rojo
             self.lbl_info_cabecera.setText("<br><br><p align='center' style='color: #EF4444; font-size: 14px;'><b>❌ Sin resultados para la última búsqueda.</b></p>")
             self.tabla_detalles.setRowCount(0)
             self.lbl_monto_total.clear()

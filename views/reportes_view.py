@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QLabel, QDateEdit, QTableWidget, QTableWidgetItem, QHeaderView)
-from PyQt6.QtCore import Qt, QDate
-from PyQt6.QtGui import QPainter
+from PyQt6.QtCore import Qt, QDate, QLocale  # 🌍 Se agrega QLocale para cambiar el idioma
+from PyQt6.QtGui import QPainter, QColor
 from PyQt6.QtCharts import QChart, QChartView, QPieSeries, QBarSeries, QBarSet, QBarCategoryAxis, QValueAxis
 from controllers.reporte_controller import ReporteController
 
@@ -12,7 +12,8 @@ class ReportesView(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        self.setStyleSheet("background-color: #F3F4F6;")
+        # Fondo General y forzado de color de texto base a negro absoluto (#000000)
+        self.setStyleSheet("background-color: #F3F4F6; color: #000000;")
         layout_principal = QVBoxLayout(self)
         layout_principal.setContentsMargins(25, 25, 25, 25)
         layout_principal.setSpacing(15)
@@ -36,16 +37,22 @@ class ReportesView(QWidget):
         # Selector de Fecha para el reporte diario
         layout_filtro = QHBoxLayout()
         lbl_titulo = QLabel("📊 Reportes de Rendimiento Comercial")
-        lbl_titulo.setStyleSheet("font-size: 22px; font-weight: bold; color: #1F2937;")
+        lbl_titulo.setStyleSheet("font-size: 22px; font-weight: bold; color: #000000;")
         layout_filtro.addWidget(lbl_titulo)
 
         layout_fecha = QHBoxLayout()
         lbl_f = QLabel("Filtrar Día:")
-        lbl_f.setStyleSheet("font-weight: bold; color: #4B5563; font-size: 14px;")
+        lbl_f.setStyleSheet("font-weight: bold; color: #000000; font-size: 14px;")
+        
         self.input_fecha = QDateEdit()
         self.input_fecha.setCalendarPopup(True)
         self.input_fecha.setDate(QDate.currentDate())
-        self.input_fecha.setStyleSheet("background-color: white; padding: 6px; border: 1px solid #D1D5DB; border-radius: 6px;")
+        self.input_fecha.setStyleSheet("background-color: white; padding: 6px; border: 1px solid #D1D5DB; border-radius: 6px; color: #000000;")
+        
+        # 🌍 TRADUCCIÓN A ESPAÑOL DEL CALENDARIO:
+        idioma_espanol = QLocale(QLocale.Language.Spanish, QLocale.Country.Spain)
+        self.input_fecha.setLocale(idioma_espanol)
+        
         self.input_fecha.dateChanged.connect(self.actualizar_reporte_del_dia)
         
         layout_fecha.addWidget(lbl_f)
@@ -61,14 +68,15 @@ class ReportesView(QWidget):
         layout_bloque_superior = QHBoxLayout()
         layout_bloque_superior.setSpacing(20)
 
-        # Tabla resumen izquierda
+        # Tabla resumen izquierda - Forzado de textos de celdas y cabeceras a negro (#000000)
         self.tabla_platos = QTableWidget()
         self.tabla_platos.setColumnCount(2)
         self.tabla_platos.setHorizontalHeaderLabels(["Plato / Producto", "Cant. Vendida"])
         self.tabla_platos.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tabla_platos.setStyleSheet("""
-            QTableWidget { background-color: white; border-radius: 12px; border: 1px solid #E5E7EB; }
-            QHeaderView::section { background-color: #F9FAFB; padding: 8px; font-weight: bold; border: none; }
+            QTableWidget { background-color: white; border-radius: 12px; border: 1px solid #E5E7EB; color: #000000; }
+            QTableWidget::item { color: #000000; }
+            QHeaderView::section { background-color: #F9FAFB; padding: 8px; font-weight: bold; border: none; color: #000000; }
         """)
         layout_bloque_superior.addWidget(self.tabla_platos, stretch=2)
 
@@ -101,8 +109,15 @@ class ReportesView(QWidget):
         for nombre, cantidad in datos_platos:
             fila = self.tabla_platos.rowCount()
             self.tabla_platos.insertRow(fila)
-            self.tabla_platos.setItem(fila, 0, QTableWidgetItem(nombre))
-            self.tabla_platos.setItem(fila, 1, QTableWidgetItem(f"{cantidad} unidades"))
+            
+            item_nombre = QTableWidgetItem(nombre)
+            item_nombre.setForeground(QColor("#000000")) # Forzado a negro puro
+            
+            item_cantidad = QTableWidgetItem(f"{cantidad} unidades")
+            item_cantidad.setForeground(QColor("#000000")) # Forzado a negro puro
+            
+            self.tabla_platos.setItem(fila, 0, item_nombre)
+            self.tabla_platos.setItem(fila, 1, item_cantidad)
             
             # Añadir rebanada al gráfico circular
             series_torta.append(f"{nombre} ({cantidad})", cantidad)
@@ -111,6 +126,11 @@ class ReportesView(QWidget):
         chart_torta = QChart()
         chart_torta.addSeries(series_torta)
         chart_torta.setTitle(f"Porcentaje de Platos Consumidos el {self.input_fecha.date().toString('dd/MM/yyyy')}")
+        
+        # Estilos de textos del gráfico a negro
+        chart_torta.setTitleBrush(QColor("#000000"))
+        chart_torta.legend().setLabelColor(QColor("#000000"))
+        
         chart_torta.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
         chart_torta.legend().setAlignment(Qt.AlignmentFlag.AlignRight)
         
@@ -119,6 +139,7 @@ class ReportesView(QWidget):
             rebanada_ganadora = series_torta.slices()[0]
             rebanada_ganadora.setExploded(True)
             rebanada_ganadora.setLabelVisible(True)
+            rebanada_ganadora.setLabelBrush(QColor("#000000")) # Texto de etiqueta en negro
 
         self.cv_torta.setChart(chart_torta)
 
@@ -127,6 +148,7 @@ class ReportesView(QWidget):
         datos_semana = self.reporte_ctrl.obtener_ventas_ultimos_7_dias()
 
         set_ingresos = QBarSet("Monto Recaudado ($)")
+        set_ingresos.setLabelBrush(QColor("#000000")) # Texto de la leyenda en negro
         categorias = []
 
         for dia, total in datos_semana:
@@ -139,17 +161,24 @@ class ReportesView(QWidget):
         chart_barras = QChart()
         chart_barras.addSeries(series_barras)
         chart_barras.setTitle("Flujo Financiero Semanal (Ingresos en los últimos días activos)")
+        
+        # Estilos de textos del gráfico a negro
+        chart_barras.setTitleBrush(QColor("#000000"))
+        chart_barras.legend().setLabelColor(QColor("#000000"))
+        
         chart_barras.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
 
         # Eje X - Fechas
         axis_x = QBarCategoryAxis()
         axis_x.append(categorias)
+        axis_x.setLabelsColor(QColor("#000000")) # Etiquetas del eje en negro
         chart_barras.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
         series_barras.attachAxis(axis_x)
 
         # Eje Y - Dinero
         axis_y = QValueAxis()
         axis_y.setLabelFormat("$%.2f")
+        axis_y.setLabelsColor(QColor("#000000")) # Valores del eje en negro
         chart_barras.addAxis(axis_y, Qt.AlignmentFlag.AlignLeft)
         series_barras.attachAxis(axis_y)
 

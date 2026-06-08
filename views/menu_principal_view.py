@@ -1,8 +1,10 @@
 import os
 import sys
-from PyQt6.QtWidgets import QWidget, QGridLayout, QVBoxLayout, QPushButton, QLabel, QHBoxLayout, QInputDialog, QLineEdit, QMessageBox
+from PyQt6.QtWidgets import (QWidget, QGridLayout, QVBoxLayout, QPushButton, 
+                             QLabel, QHBoxLayout, QInputDialog, QLineEdit, 
+                             QMessageBox, QSizePolicy)
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QResizeEvent
 
 # 🛠️ FUNCIONES DE GESTIÓN DE CONTRASEÑA (ARCHIVO DE TEXTO EXTERNO)
 def obtener_ruta_config():
@@ -40,13 +42,14 @@ class MenuPrincipalView(QWidget):
     def __init__(self, stacked_widget):
         super().__init__()
         self.stacked_widget = stacked_widget
+        self.cards_imagenes = [] # Guardaremos las referencias para redimensionarlas elásticamente
         self.init_ui()
 
     def init_ui(self):
         self.setStyleSheet("background-color: #F8FAFC;")
         
         layout_principal = QVBoxLayout(self)
-        layout_principal.setContentsMargins(50, 40, 50, 50)
+        layout_principal.setContentsMargins(30, 30, 30, 30) # Márgenes ligeramente reducidos para pantallas chicas
 
         # ─── ENCABEZADO (Header) ───
         header_layout = QHBoxLayout()
@@ -70,13 +73,18 @@ class MenuPrincipalView(QWidget):
         header_layout.addWidget(lbl_status, alignment=Qt.AlignmentFlag.AlignVCenter)
         
         layout_principal.addLayout(header_layout)
-        layout_principal.addSpacing(40)
+        layout_principal.addSpacing(20)
 
-        # ─── CUADRÍCULA DE TARJETAS ───
+        # ─── CUADRÍCULA DE TARJETAS ELÁSTICA ───
         grid_cards = QGridLayout()
-        grid_cards.setSpacing(35)
+        grid_cards.setSpacing(25) # Espaciado optimizado para que no se encima
 
-        # Configuración de botones indicando cuáles requieren protección (True = Protegido, False = Público)
+        # Configuramos el estiramiento elástico de las 3 columnas (0, 1, 2) y 2 filas (0, 1)
+        for i in range(3):
+            grid_cards.setColumnStretch(i, 1)
+        for i in range(2):
+            grid_cards.setRowStretch(i, 1)
+
         botones_config = [
             ("VENTA", "NUEVA VENTA", 1, "venta.png", False),
             ("CONSULTA", "CONSULTAR", 2, "consulta.png", True),
@@ -94,58 +102,79 @@ class MenuPrincipalView(QWidget):
 
             card = QWidget()
             card.setStyleSheet(estilo_tarjeta)
-            card.setMinimumHeight(340)
             
+            # El secreto: En lugar de un tamaño fijo, le decimos que se expanda en ambas direcciones
+            card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            card.setMinimumHeight(220) # Un mínimo seguro para pantallas muy pequeñas de laptops
+
             card_layout = QVBoxLayout(card)
-            card_layout.setContentsMargins(25, 25, 25, 25)
+            card_layout.setContentsMargins(20, 20, 20, 20)
             card_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
             lbl_card = QLabel(titulo_card)
             lbl_card.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            lbl_card.setStyleSheet("font-size: 20px; font-weight: 800; color: #0F172A; border: none; background: transparent;")
+            lbl_card.setStyleSheet("font-size: 18px; font-weight: 800; color: #0F172A; border: none; background: transparent;")
             card_layout.addWidget(lbl_card)
             card_layout.addStretch()
 
-            # Imagen
+            # Imagen adaptable
             lbl_imagen = QLabel()
             lbl_imagen.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            lbl_imagen.setStyleSheet("border: none; background: transparent; padding: 10px 0px;")
+            lbl_imagen.setStyleSheet("border: none; background: transparent;")
             ruta_foto = obtener_ruta_asset(f"assets/images/{nombre_imagen}")
             pixmap = QPixmap(ruta_foto)
+            
             if not pixmap.isNull():
-                lbl_imagen.setPixmap(pixmap.scaled(110, 110, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-                card_layout.addWidget(lbl_imagen)
-                card_layout.addStretch()
+                # Guardamos la referencia y el pixmap original para poder redimensionarlo en el evento resize
+                lbl_imagen.setPixmap(pixmap.scaled(90, 90, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+                card.setProperty("original_pixmap", pixmap)
+                card.setProperty("label_imagen", lbl_imagen)
+                self.cards_imagenes.append(card)
+                
+            card_layout.addWidget(lbl_imagen)
+            card_layout.addStretch()
 
-            # Botón
+            # Botón elástico
             btn_accion = QPushButton(texto_btn)
             btn_accion.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn_accion.setMinimumWidth(200)
-            btn_accion.setMinimumHeight(45)
+            btn_accion.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            btn_accion.setMaximumWidth(260) # Que no se vuelva gigante horizontalmente en pantallas muy grandes
+            btn_accion.setMinimumHeight(40)
             btn_accion.setStyleSheet("""
                 QPushButton { background-color: #2563EB; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 13px; }
                 QPushButton:hover { background-color: #1D4ED8; }
             """)
             
-            # 🌟 Conexión inteligente pasándole los parámetros a nuestra función validadora
             btn_accion.clicked.connect(
                 lambda checked, p_id=pantalla_id, req=requiere_admin: self.intentar_acceso(p_id, req)
             )
             
-            card_layout.addWidget(btn_accion)
+            card_layout.addWidget(btn_accion, alignment=Qt.AlignmentFlag.AlignCenter)
             grid_cards.addWidget(card, fila, columna)
 
         layout_principal.addLayout(grid_cards)
+
+    def resizeEvent(self, event: QResizeEvent):
+        """ Evento nativo de PyQt que detecta cuando la ventana cambia de tamaño """
+        super().resizeEvent(event)
+        # Redimensionamos de forma inteligente las imágenes según el espacio real disponible en la tarjeta
+        for card in self.cards_imagenes:
+            pixmap = card.property("original_pixmap")
+            lbl_imagen = card.property("label_imagen")
+            if pixmap and lbl_imagen:
+                # Calculamos un tamaño proporcional basado en la altura actual de la tarjeta
+                nuevo_alto = max(50, min(100, int(card.height() * 0.25)))
+                lbl_imagen.setPixmap(pixmap.scaled(nuevo_alto, nuevo_alto, 
+                                                   Qt.AspectRatioMode.KeepAspectRatio, 
+                                                   Qt.TransformationMode.SmoothTransformation))
 
     # 🛡️ INTERCEPTOR DE SEGURIDAD
     def intentar_acceso(self, pantalla_id, requiere_admin):
         """ Valida la clave si el módulo lo requiere antes de dar acceso """
         if not requiere_admin:
-            # Si es Nueva Venta o Ayuda, pasa directo
             self.stacked_widget.setCurrentIndex(pantalla_id)
             return
 
-        # Si requiere admin, abrimos la ventana flotante oculta con asteriscos (••••)
         clave_ingresada, ok = QInputDialog.getText(
             self, 
             "Acceso Restringido", 
@@ -154,10 +183,8 @@ class MenuPrincipalView(QWidget):
         )
 
         if ok and clave_ingresada:
-            clave_real = leer_contrasena()  # Leemos directo el config.txt externo
+            clave_real = leer_contrasena()
             if clave_ingresada == clave_real:
-                # ¡Clave correcta! Se le permite ingresar al módulo protegido
                 self.stacked_widget.setCurrentIndex(pantalla_id)
             else:
-                # Clave incorrecta
                 QMessageBox.critical(self, "Error", "Contraseña incorrecta. Acceso denegado.")

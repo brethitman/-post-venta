@@ -38,7 +38,8 @@ class ConfiguracionView(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        self.setStyleSheet("background-color: #F3F4F6;")
+        # Fondo General y forzado de color base de texto a negro absoluto (#000000)
+        self.setStyleSheet("background-color: #F3F4F6; color: #000000;")
         layout_principal = QVBoxLayout(self)
         layout_principal.setContentsMargins(25, 25, 25, 25)
         layout_principal.setSpacing(15)
@@ -65,25 +66,29 @@ class ConfiguracionView(QWidget):
 
         # FORMULARIO DE EDICIÓN DE PLATOS (IZQUIERDA)
         form_panel = QWidget()
-        form_panel.setStyleSheet("background-color: white; border-radius: 12px; border: 1px solid #E5E7EB;")
+        # Se forza color: #000000 a todos los QLabels y elementos de este panel
+        form_panel.setStyleSheet("""
+            QWidget { background-color: white; border-radius: 12px; border: 1px solid #E5E7EB; color: #000000; }
+            QLabel { color: #000000; border: none; background: transparent; }
+        """)
         form_layout = QVBoxLayout(form_panel)
         form_layout.setContentsMargins(20, 20, 20, 20)
         form_layout.setSpacing(12)
 
         lbl_panel = QLabel("📋 Datos del Menú / Plato")
-        lbl_panel.setStyleSheet("font-size: 16px; font-weight: bold; color: #1F2937; border-bottom: 1px solid #E5E7EB; padding-bottom: 8px;")
+        lbl_panel.setStyleSheet("font-size: 16px; font-weight: bold; color: #000000; border-bottom: 1px solid #E5E7EB; padding-bottom: 8px;")
         form_layout.addWidget(lbl_panel)
         
         form_layout.addWidget(QLabel("<b>Nombre del Plato:</b>"))
         self.txt_nombre = QLineEdit()
         self.txt_nombre.setPlaceholderText("Ej: Asado de Tira con Papas")
-        self.txt_nombre.setStyleSheet("padding: 8px; border: 1px solid #D1D5DB; border-radius: 6px; background-color: #FFFFFF;")
+        self.txt_nombre.setStyleSheet("padding: 8px; border: 1px solid #D1D5DB; border-radius: 6px; background-color: #FFFFFF; color: #000000;")
         form_layout.addWidget(self.txt_nombre)
 
         form_layout.addWidget(QLabel("<b>Precio de Venta ($):</b>"))
         self.txt_precio = QLineEdit()
         self.txt_precio.setPlaceholderText("Ej: 45.50")
-        self.txt_precio.setStyleSheet("padding: 8px; border: 1px solid #D1D5DB; border-radius: 6px; background-color: #FFFFFF;")
+        self.txt_precio.setStyleSheet("padding: 8px; border: 1px solid #D1D5DB; border-radius: 6px; background-color: #FFFFFF; color: #000000;")
         form_layout.addWidget(self.txt_precio)
 
         # Botones de acción del menú
@@ -107,7 +112,7 @@ class ConfiguracionView(QWidget):
 
         self.btn_limpiar = QPushButton("🧹 Limpiar Formulario")
         self.btn_limpiar.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_limpiar.setStyleSheet("background-color: #F3F4F6; color: #4B5563; padding: 8px; border-radius: 6px; border: 1px solid #D1D5DB;")
+        self.btn_limpiar.setStyleSheet("background-color: #F3F4F6; color: #000000; padding: 8px; border-radius: 6px; border: 1px solid #D1D5DB; font-weight: bold;")
         self.btn_limpiar.clicked.connect(self.limpiar_campos)
         form_layout.addWidget(self.btn_limpiar)
         
@@ -125,9 +130,11 @@ class ConfiguracionView(QWidget):
         # 🔒 CONFIGURACIÓN VISUAL: Deshabilita disparadores de edición integrados en las celdas
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         
+        # Forzado de textos de cabecera y celdas internas de la tabla a negro puro (#000000)
         self.tabla.setStyleSheet("""
-            QTableWidget { background-color: white; border-radius: 12px; border: 1px solid #E5E7EB; }
-            QHeaderView::section { background-color: #F9FAFB; padding: 8px; font-weight: bold; border: none; color: #4B5563; }
+            QTableWidget { background-color: white; border-radius: 12px; border: 1px solid #E5E7EB; color: #000000; }
+            QTableWidget::item { color: #000000; }
+            QHeaderView::section { background-color: #F9FAFB; padding: 8px; font-weight: bold; border: none; color: #000000; }
         """)
         self.tabla.itemSelectionChanged.connect(self.cargar_plato_seleccionado)
         
@@ -136,18 +143,22 @@ class ConfiguracionView(QWidget):
 
         # ─── FORMULARIO CAMBIO DE CONTRASEÑA (ABAJO) ───
         pass_panel = QWidget()
-        pass_panel.setStyleSheet("background-color: white; border-radius: 12px; border: 1px solid #E5E7EB;")
+        pass_panel.setStyleSheet("""
+            QWidget { background-color: white; border-radius: 12px; border: 1px solid #E5E7EB; color: #000000; }
+            QLabel { color: #000000; }
+        """)
         pass_layout = QVBoxLayout(pass_panel)
         pass_layout.setContentsMargins(20, 15, 20, 15)
 
         lbl_pass_titulo = QLabel("🔐 Seguridad del Sistema (Cambiar Contraseña de Administrador)")
-        lbl_pass_titulo.setStyleSheet("font-size: 15px; font-weight: bold; color: #1F2937; padding-bottom: 5px;")
+        lbl_pass_titulo.setStyleSheet("font-size: 15px; font-weight: bold; color: #000000; padding-bottom: 5px;")
         pass_layout.addWidget(lbl_pass_titulo)
 
         inputs_layout = QHBoxLayout()
         inputs_layout.setSpacing(15)
 
-        estilo_txt_pass = "padding: 8px; border: 1px solid #D1D5DB; border-radius: 6px; background-color: #F9FAFB;"
+        # Estilo forzado para que el texto ingresado de los passwords sea negro puro
+        estilo_txt_pass = "padding: 8px; border: 1px solid #D1D5DB; border-radius: 6px; background-color: #F9FAFB; color: #000000;"
 
         self.txt_pass_actual = QLineEdit()
         self.txt_pass_actual.setPlaceholderText("Contraseña Actual")
@@ -190,12 +201,20 @@ class ConfiguracionView(QWidget):
         
         for fila, plato in enumerate(platos):
             self.tabla.insertRow(fila)
+            
             item_id = QTableWidgetItem(str(plato.id))
             item_id.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            item_id.setForeground(Qt.GlobalColor.black) # Texto dinámico forzado a negro
+            
+            item_nombre = QTableWidgetItem(plato.nombre)
+            item_nombre.setForeground(Qt.GlobalColor.black) # Texto dinámico forzado a negro
+            
+            item_precio = QTableWidgetItem(f"${plato.precio:.2f}")
+            item_precio.setForeground(Qt.GlobalColor.black) # Texto dinámico forzado a negro
             
             self.tabla.setItem(fila, 0, item_id)
-            self.tabla.setItem(fila, 1, QTableWidgetItem(plato.nombre))
-            self.tabla.setItem(fila, 2, QTableWidgetItem(f"${plato.precio:.2f}"))
+            self.tabla.setItem(fila, 1, item_nombre)
+            self.tabla.setItem(fila, 2, item_precio)
             
         self.tabla.itemSelectionChanged.connect(self.cargar_plato_seleccionado)
 

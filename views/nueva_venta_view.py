@@ -1,10 +1,13 @@
+import os
+import sys
+from datetime import datetime
 from PyQt6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QPushButton, 
                              QLabel, QTableWidget, QTableWidgetItem, QHeaderView, 
                              QScrollArea, QGridLayout, QMessageBox)
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QTextDocument, QFont
+from PyQt6.QtCore import Qt, QSizeF, QMarginsF  # 🛠️ Corrección de importación aquí
+from PyQt6.QtGui import QTextDocument, QFont, QPageSize
 from PyQt6.QtPrintSupport import QPrinter, QPrintDialog  # 🖨️ Componentes nativos de impresión
-from datetime import datetime
+
 from controllers.plato_controller import PlatoController
 from controllers.venta_controller import VentaController
 from models.venta import Venta
@@ -13,7 +16,7 @@ from models.detalle_venta import DetalleVenta
 class NuevaVentaView(QWidget):
     def __init__(self):
         super().__init__()
-        # 🛠️ CORRECCIÓN AQUÍ: Dejamos los constructores vacíos para usar la ruta absoluta automatizada
+        # Constructores vacíos para usar la ruta absoluta automatizada
         self.plato_ctrl = PlatoController()
         self.venta_ctrl = VentaController()
         
@@ -40,7 +43,6 @@ class NuevaVentaView(QWidget):
         seccion_platos.addWidget(self.btn_volver, alignment=Qt.AlignmentFlag.AlignLeft)
         
         lbl_menu = QLabel("Menú de Platos Disponibles")
-        # Forzado a negro absoluto
         lbl_menu.setStyleSheet("font-size: 18px; font-weight: bold; color: #000000; margin: 10px 0;")
         seccion_platos.addWidget(lbl_menu)
 
@@ -62,7 +64,6 @@ class NuevaVentaView(QWidget):
         seccion_total = QVBoxLayout()
         
         card_resumen = QWidget()
-        # Forzado a negro absoluto para todo QLabel interno
         card_resumen.setStyleSheet("""
             QWidget { background-color: #FFFFFF; border-radius: 16px; border: 1px solid #E5E5E5; color: #000000; }
             QLabel { border: none; background: transparent; color: #000000; }
@@ -82,9 +83,8 @@ class NuevaVentaView(QWidget):
         
         # ❌ DESHABILITAR EDICIÓN EN LA TABLA
         self.tabla_carrito.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.tabla_carrito.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows) # Solo seleccionar filas
+        self.tabla_carrito.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
 
-        # Forzado de textos de celdas e ítems de cabeceras de la tabla a negro absoluto
         self.tabla_carrito.setStyleSheet("""
             QTableWidget { border: none; background-color: white; gridline-color: #F3F4F6; color: #000000; }
             QTableWidget::item { color: #000000; }
@@ -148,7 +148,6 @@ class NuevaVentaView(QWidget):
             lbl_texto_plato = QLabel(f"{plato.nombre}\n\n${plato.precio:.2f}")
             lbl_texto_plato.setAlignment(Qt.AlignmentFlag.AlignCenter)
             lbl_texto_plato.setWordWrap(True)
-            # Forzado de la etiqueta interna del botón de plato a color negro absoluto
             lbl_texto_plato.setStyleSheet("font-size: 13px; font-weight: bold; color: #000000; border: none; background: transparent;")
             
             btn_layout.addWidget(lbl_texto_plato)
@@ -157,7 +156,7 @@ class NuevaVentaView(QWidget):
             self.grid_platos.addWidget(btn_plato, fila, columna)
 
     def actualizar_menu(self):
-        """Limpia los botones obsoletos de la cuadrícula y redibuja el menú actualizado de la base de datos."""
+        """Limpia los botones obsoletos de la cuadrícula y redibuja el menú actualizado."""
         while self.grid_platos.count():
             item = self.grid_platos.takeAt(0)
             widget = item.widget()
@@ -197,7 +196,6 @@ class NuevaVentaView(QWidget):
             fila = self.tabla_carrito.rowCount()
             self.tabla_carrito.insertRow(fila)
             
-            # Forzado explícito de las fuentes y celdas individuales agregadas dinámicamente
             celda_nombre = QTableWidgetItem(plato.nombre)
             celda_nombre.setForeground(Qt.GlobalColor.black)
             
@@ -257,7 +255,7 @@ class NuevaVentaView(QWidget):
             QMessageBox.critical(self, "Error", "Ocurrió un problema en la BD al guardar la venta.")
 
     def generar_bloque_texto_ticket(self, tipo_copia: str, venta: Venta, ticket_diario: int) -> list:
-        """Helper para construir las líneas individuales de cada copia conservando tu formato original."""
+        """Helper para construir las líneas individuales de cada copia."""
         lineas = []
         lineas.append("=========================================")
         lineas.append(f"            *** {tipo_copia} *** ")
@@ -287,27 +285,52 @@ class NuevaVentaView(QWidget):
         return lineas
 
     def imprimir_ticket(self, venta: Venta, ticket_diario: int):
-        """Genera el contenido en texto uniendo las 3 copias y despliega tu diálogo nativo original."""
+        """Genera el contenido en texto uniendo las 3 copias y lo optimiza para tickets de 80mm."""
         texto_ticket_completo = []
         
-        # Unimos los 3 bloques seguidos uno tras otro en la misma tira
         texto_ticket_completo.extend(self.generar_bloque_texto_ticket("COPIA CAJA", venta, ticket_diario))
         texto_ticket_completo.extend(self.generar_bloque_texto_ticket("COPIA COCINA", venta, ticket_diario))
         texto_ticket_completo.extend(self.generar_bloque_texto_ticket("COPIA CLIENTE", venta, ticket_diario))
         
-        # Añadimos unos saltos de línea finales para que el rollo avance y no se corte el último ticket
-        texto_ticket_completo.append("\n\n\n")
-
+        texto_ticket_completo.append("\n\n\n\n")
         cuerpo_ticket = "\n".join(texto_ticket_completo)
 
-        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+        # Configuración térmica para evitar fuentes minúsculas
+        printer = QPrinter(QPrinter.PrinterMode.ScreenResolution)
+        
+        # Papel térmico de 80mm continuo (500mm máx)
+        tamano_80mm = QPageSize(QSizeF(80.0, 500.0), QPageSize.Unit.Millimeter)
+        printer.setPageSize(tamano_80mm)
+        
+        # Márgenes lógicos en 0 para aprovechar los 80mm reales
+        layout = printer.pageLayout()
+        layout.setMargins(QMarginsF(0.0, 0.0, 0.0, 0.0))
+        printer.setPageLayout(layout)
+
         dialogo = QPrintDialog(printer, self)
         
         if dialogo.exec() == QPrintDialog.DialogCode.Accepted:
             documento = QTextDocument()
-            fuente = QFont("Courier New", 10)
-            documento.setDefaultFont(fuente)
-            documento.setPlainText(cuerpo_ticket)
+            
+            # CSS HTML inyectado para obligar tipografía Courier fija
+            html_contenido = f"""
+            <html>
+            <head>
+                <style>
+                    body {{
+                        font-family: 'Courier New', Courier, monospace;
+                        font-size: 8pt;
+                        white-space: pre;
+                        margin: 0px;
+                        padding: 0px;
+                    }}
+                </style>
+            </head>
+            <body>{cuerpo_ticket}</body>
+            </html>
+            """
+            
+            documento.setHtml(html_contenido)
             documento.print(printer)
         else:
             print("Impresión cancelada por el usuario.")

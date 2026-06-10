@@ -85,13 +85,13 @@ class MenuPrincipalView(QWidget):
         for i in range(2):
             grid_cards.setRowStretch(i, 1)
 
+        # 🛑 SE ELIMINÓ LA TARJETA DE "AYUDA" DE ESTA LISTA
         botones_config = [
             ("VENTA", "NUEVA VENTA", 1, "venta.png", False),
             ("CONSULTA", "CONSULTAR", 2, "consulta.png", True),
             ("HISTORIAL\nVENTAS", "VER VENTAS", 3, "listar.png", True),
             ("REPORTES", "VER REPORTES", 4, "reportes.png", True),
-            ("CONFIGURACIÓN", "CONFIGURAR", 5, "configurar.png", True),
-            ("AYUDA", "SOPORTE", 6, "ayuda.png", False)
+            ("CONFIGURACIÓN", "CONFIGURAR", 5, "configurar.png", True)
         ]
 
         estilo_tarjeta = "QWidget { background-color: #FFFFFF; border-radius: 16px; border: 1px solid #E2E8F0; }"

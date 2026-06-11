@@ -4,9 +4,9 @@ from datetime import datetime
 from PyQt6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QPushButton, 
                              QLabel, QTableWidget, QTableWidgetItem, QHeaderView, 
                              QScrollArea, QGridLayout, QMessageBox)
-from PyQt6.QtCore import Qt, QSizeF, QMarginsF  # 🛠️ Corrección de importación aquí
-from PyQt6.QtGui import QTextDocument, QFont, QPageSize
-from PyQt6.QtPrintSupport import QPrinter, QPrintDialog  # 🖨️ Componentes nativos de impresión
+from PyQt6.QtCore import Qt, QSizeF, QMarginsF, QRectF  
+from PyQt6.QtGui import QTextDocument, QFont, QPageSize, QPainter, QTextOption
+from PyQt6.QtPrintSupport import QPrinter, QPrintDialog  
 
 from controllers.plato_controller import PlatoController
 from controllers.venta_controller import VentaController
@@ -96,7 +96,7 @@ class NuevaVentaView(QWidget):
         self.lbl_cant_articulos.setStyleSheet("font-size: 14px; color: #000000; margin-top: 5px;")
         layout_resumen.addWidget(self.lbl_cant_articulos)
         
-        self.lbl_total = QLabel("TOTAL: $0.00")
+        self.lbl_total = QLabel("TOTAL: 0.00")
         self.lbl_total.setStyleSheet("font-size: 26px; font-weight: 900; color: #10B981; margin: 10px 0;")
         layout_resumen.addWidget(self.lbl_total)
         
@@ -145,7 +145,7 @@ class NuevaVentaView(QWidget):
             btn_layout = QVBoxLayout(btn_plato)
             btn_layout.setContentsMargins(10, 10, 10, 10)
             
-            lbl_texto_plato = QLabel(f"{plato.nombre}\n\n${plato.precio:.2f}")
+            lbl_texto_plato = QLabel(f"{plato.nombre}\n\n{plato.precio:.2f}")
             lbl_texto_plato.setAlignment(Qt.AlignmentFlag.AlignCenter)
             lbl_texto_plato.setWordWrap(True)
             lbl_texto_plato.setStyleSheet("font-size: 13px; font-weight: bold; color: #000000; border: none; background: transparent;")
@@ -202,10 +202,10 @@ class NuevaVentaView(QWidget):
             celda_cant = QTableWidgetItem(str(cant))
             celda_cant.setForeground(Qt.GlobalColor.black)
             
-            celda_precio = QTableWidgetItem(f"${plato.precio:.2f}")
+            celda_precio = QTableWidgetItem(f"{plato.precio:.2f}")
             celda_precio.setForeground(Qt.GlobalColor.black)
             
-            celda_subtotal = QTableWidgetItem(f"${subtotal:.2f}")
+            celda_subtotal = QTableWidgetItem(f"{subtotal:.2f}")
             celda_subtotal.setForeground(Qt.GlobalColor.black)
             
             self.tabla_carrito.setItem(fila, 0, celda_nombre)
@@ -226,7 +226,7 @@ class NuevaVentaView(QWidget):
             self.tabla_carrito.setCellWidget(fila, 4, btn_eliminar)
 
         self.lbl_cant_articulos.setText(f"Items seleccionados: {items_totales}")
-        self.lbl_total.setText(f"TOTAL: ${total_acumulado:.2f}")
+        self.lbl_total.setText(f"TOTAL: {total_acumulado:.2f}")
 
     def procesar_venta(self):
         if not self.carrito:
@@ -254,84 +254,119 @@ class NuevaVentaView(QWidget):
         else:
             QMessageBox.critical(self, "Error", "Ocurrió un problema en la BD al guardar la venta.")
 
-    def generar_bloque_texto_ticket(self, tipo_copia: str, venta: Venta, ticket_diario: int) -> list:
-        """Helper para construir las líneas individuales de cada copia."""
+    def generar_bloque_texto_ticket(self, venta: Venta, ticket_diario: int) -> list:
+        """Estructura de datos limpia y ordenada para el procesamiento secuencial."""
         lineas = []
-        lineas.append("=========================================")
-        lineas.append(f"            *** {tipo_copia} *** ")
-        lineas.append("=========================================")
-        lineas.append("         RESTAURANTE BUEN SABOR          ")
-        lineas.append("=========================================")
-        lineas.append(f"            *** TICKET N° {ticket_diario} *** ")
-        lineas.append("=========================================")
-        lineas.append(f"Fecha: {venta.fecha_hora.strftime('%d/%m/%Y %H:%M:%S')}")
-        lineas.append("-----------------------------------------")
-        lineas.append(f"{'Cant. Plato':<22} {'P.Unit':<8} {'Subtotal':<8}")
-        lineas.append("-----------------------------------------")
+        lineas.append(f"EL BUEN SABOR|CENTER")
+        lineas.append(f"TICKET N° {ticket_diario}|CENTER")
+        lineas.append(f"Fecha: {venta.fecha_hora.strftime('%d/%m/%Y %H:%M')}|LEFT")
+        lineas.append(f"------------------------------------------------|LEFT")
+        lineas.append(f"Cant  Descripción                      Total|SPLIT")
+        lineas.append(f"------------------------------------------------|LEFT")
         
         for item in self.carrito.values():
             plato = item['plato']
             cant = item['cantidad']
             sub = plato.precio * cant
-            nombre_corto = plato.nombre[:18] 
-            lineas.append(f"{cant}x {nombre_corto:<19} ${plato.precio:<7.2f} ${sub:<7.2f}")
             
-        lineas.append("-----------------------------------------")
-        lineas.append(f"TOTAL A PAGAR:                  ${venta.total:.2f}")
-        lineas.append("=========================================")
-        lineas.append("         ¡Gracias por su preferencia!     ")
-        lineas.append("================================*********")
-        lineas.append("\n✂ - - - - - - - - - - - - - - - - - - - ✂\n")
+            # Guardamos los productos con su respectiva etiqueta de fila
+            lineas.append(f"{cant:>2}x  {plato.nombre.strip()}|{sub:.2f}|PRODUCT_ROW")
+            
+        lineas.append(f"------------------------------------------------|LEFT")
+        # ¡GARANTIZADO!: El total a pagar viaja explícitamente estructurado en la lista
+        lineas.append(f"TOTAL A PAGAR|{venta.total:.2f}|TOTAL_ROW")
+        lineas.append(f"------------------------------------------------|LEFT")
+        lineas.append(f"|LEFT")
+        lineas.append(f"|LEFT")
+        lineas.append(f"|LEFT")
+        lineas.append(f"✂ - - - - - - - - - - - - - - - - - - - - - - ✂|CENTER")
         return lineas
 
     def imprimir_ticket(self, venta: Venta, ticket_diario: int):
-        """Genera el contenido en texto uniendo las 3 copias y lo optimiza para tickets de 80mm."""
-        texto_ticket_completo = []
-        
-        texto_ticket_completo.extend(self.generar_bloque_texto_ticket("COPIA CAJA", venta, ticket_diario))
-        texto_ticket_completo.extend(self.generar_bloque_texto_ticket("COPIA COCINA", venta, ticket_diario))
-        texto_ticket_completo.extend(self.generar_bloque_texto_ticket("COPIA CLIENTE", venta, ticket_diario))
-        
-        texto_ticket_completo.append("\n\n\n\n")
-        cuerpo_ticket = "\n".join(texto_ticket_completo)
+        """Imprime distribuyendo el texto en dos columnas independientes y forzando el total al final."""
+        contenido_ticket = self.generar_bloque_texto_ticket(venta, ticket_diario)
 
-        # Configuración térmica para evitar fuentes minúsculas
-        printer = QPrinter(QPrinter.PrinterMode.ScreenResolution)
+        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+        printer.setFullPage(True)
         
-        # Papel térmico de 80mm continuo (500mm máx)
-        tamano_80mm = QPageSize(QSizeF(80.0, 500.0), QPageSize.Unit.Millimeter)
-        printer.setPageSize(tamano_80mm)
-        
-        # Márgenes lógicos en 0 para aprovechar los 80mm reales
-        layout = printer.pageLayout()
-        layout.setMargins(QMarginsF(0.0, 0.0, 0.0, 0.0))
-        printer.setPageLayout(layout)
-
         dialogo = QPrintDialog(printer, self)
         
         if dialogo.exec() == QPrintDialog.DialogCode.Accepted:
-            documento = QTextDocument()
+            dpi_x = printer.logicalDpiX()
+            dpi_y = printer.logicalDpiY()
             
-            # CSS HTML inyectado para obligar tipografía Courier fija
-            html_contenido = f"""
-            <html>
-            <head>
-                <style>
-                    body {{
-                        font-family: 'Courier New', Courier, monospace;
-                        font-size: 8pt;
-                        white-space: pre;
-                        margin: 0px;
-                        padding: 0px;
-                    }}
-                </style>
-            </head>
-            <body>{cuerpo_ticket}</body>
-            </html>
-            """
+            total_lineas = len(contenido_ticket)
+            # Damos suficiente espacio vertical dinámico para que entren todos los renglones y el total holgadamente
+            alto_total_mm = 15.0 + (total_lineas * 6.5) + 35.0
+            printer.setPageSize(QPageSize(QSizeF(80.0, alto_total_mm), QPageSize.Unit.Millimeter))
             
-            documento.setHtml(html_contenido)
-            documento.print(printer)
+            layout = printer.pageLayout()
+            layout.setMargins(QMarginsF(0.0, 0.0, 0.0, 0.0))
+            printer.setPageLayout(layout)
+
+            fuente = QFont("Courier New")
+            fuente.setStyleHint(QFont.StyleHint.Monospace)
+            tamano_fuente = (dpi_x * 9.5) / 203.0 
+            fuente.setPointSizeF(tamano_fuente) 
+
+            margen_izq = int((4.0 / 25.4) * dpi_x)
+            margen_der = int((4.0 / 25.4) * dpi_x)
+            alto_linea_px = int((5.6 / 25.4) * dpi_y)
+            
+            ancho_imprimible = printer.pageRect(QPrinter.Unit.DevicePixel).width() - margen_izq - margen_der
+
+            # Asignación de anchos de columna independientes para evitar choques
+            ancho_columna_total = int((20.0 / 25.4) * dpi_x)
+            ancho_columna_descripcion = ancho_imprimible - ancho_columna_total
+
+            for i in range(3):
+                painter = QPainter()
+                if painter.begin(printer):
+                    painter.setFont(fuente)
+                    posicion_y_px = int((8.0 / 25.4) * dpi_y)
+                    
+                    for item in contenido_ticket:
+                        partes = item.split("|")
+                        texto_izq = partes[0]
+                        tipo = partes[-1]
+                        
+                        if tipo == "CENTER":
+                            rect_linea = QRectF(margen_izq, posicion_y_px, ancho_imprimible, alto_linea_px)
+                            painter.drawText(rect_linea, Qt.AlignmentFlag.AlignCenter, texto_izq)
+                            posicion_y_px += alto_linea_px
+                            
+                        elif tipo == "LEFT":
+                            rect_linea = QRectF(margen_izq, posicion_y_px, ancho_imprimible, alto_linea_px)
+                            painter.drawText(rect_linea, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, texto_izq)
+                            posicion_y_px += alto_linea_px
+                            
+                        elif tipo == "SPLIT":
+                            rect_linea = QRectF(margen_izq, posicion_y_px, ancho_imprimible, alto_linea_px)
+                            painter.drawText(rect_linea, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, "Cant  Descripción")
+                            painter.drawText(rect_linea, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, "Total")
+                            posicion_y_px += alto_linea_px
+                            
+                        elif tipo == "PRODUCT_ROW" or tipo == "TOTAL_ROW":
+                            texto_der = partes[1]
+                            
+                            # Opciones para activar el auto-wrap gráfico nativo en la descripción
+                            opciones_texto = QTextOption()
+                            opciones_texto.setWrapMode(QTextOption.WrapMode.WordWrap)
+                            
+                            # 1. Dibujamos la columna izquierda (Descripción del producto o etiqueta "TOTAL A PAGAR")
+                            rect_desc = QRectF(margen_izq, posicion_y_px, ancho_columna_descripcion, alto_linea_px * 5)
+                            rect_calculado = painter.boundingRect(rect_desc, texto_izq, opciones_texto)
+                            painter.drawText(rect_desc, texto_izq, opciones_texto)
+                            
+                            # 2. Dibujamos la columna derecha (Monto del subtotal o Monto del total general)
+                            rect_precio = QRectF(margen_izq + ancho_columna_descripcion, posicion_y_px, ancho_columna_total, alto_linea_px)
+                            painter.drawText(rect_precio, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop, texto_der)
+                            
+                            # Avanzamos el cursor Y según el tamaño que haya consumido la envoltura de texto
+                            alto_utilizado = max(int(rect_calculado.height()), alto_linea_px)
+                            posicion_y_px += alto_utilizado + int((1.0 / 25.4) * dpi_y)
+                            
+                    painter.end()
         else:
             print("Impresión cancelada por el usuario.")
 
